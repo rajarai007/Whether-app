@@ -21,30 +21,25 @@ class WeatherScreen extends StatefulWidget{
 
 class _WeatherScreenState extends State<WeatherScreen> {
 
-   double temp = 0;
   
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    
-    getCurrentWeather(); 
-  }
 
   //uniform resource identifier
-  Future getCurrentWeather()async{
+  Future <Map<String,dynamic>> getCurrentWeather()async{
     try{
      
   String cityName = 'London';
   final result = await http.get(Uri.parse('https://api.openweathermap.org/data/2.5/forecast?q=$cityName&APPID=$openWeatherAPIKey'));
     final data = jsonDecode(result.body);
-    if(data['cod']!='200'){
-      throw "Somthing happened please check ";
-    } 
-         temp = data['list'] [0] ['main'] ['temp'];
 
+        //  temp = data['list'] [0] ['main'] ['temp'];
+       
+      if(data["cod"]!='200'){
+        throw 'An unexpected thing happened';
+      } 
+       return data;
    } catch (e){
       print("Something happend please check idiot");
+     throw e.toString();
   }
   }
 
@@ -67,13 +62,25 @@ class _WeatherScreenState extends State<WeatherScreen> {
      future: getCurrentWeather(),
      builder: (context , snapshot) {
       if(snapshot.connectionState == ConnectionState.waiting){
-        return const CircularProgressIndicator.adaptive();
+        return const Center(child:  CircularProgressIndicator.adaptive());
       }
       if(snapshot.hasError){
         return Text(snapshot.error.toString());
       }
 
       final data = snapshot.data!;
+      
+      final currentWeatherData = data['list'] [0];
+
+      final currentTemp = currentWeatherData ['main'] ['temp']; 
+
+      final currentSky = currentWeatherData['weather'][0]['main'];
+
+      final currentPressure = currentWeatherData['main']['pressure'];
+
+      final currentWindSpeed =  currentWeatherData ['wind']['speed'];
+
+      final currentHumidity = currentWeatherData['main']['humidity'];
        
        return Padding(
         padding: const EdgeInsets.all(16),
@@ -94,20 +101,22 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 10,sigmaY: 10),
                       child:  Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding:  EdgeInsets.all(16),
                         child: Column(
                           children: [
-                            Text('$temp K',
-                             style: const TextStyle(
+                            Text('$currentTemp K',
+                             style: const  TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold
                             ),),
-                            const SizedBox(height: 16,), 
-                          const  Icon(Icons.cloud,
+                             SizedBox(height: 16,), 
+                            Icon(
+                              currentSky == 'Cloud' ||  currentSky == 'Rain'? Icons.cloud : Icons.sunny,
+
                             size: 64,
                             ),
                            const  SizedBox(height: 16,),
-                           const Text("Rain",style: TextStyle(fontSize: 20),)
+                            Text(currentSky,style: TextStyle(fontSize: 20),)
                                 
                         ]),
                       ),
@@ -131,38 +140,18 @@ class _WeatherScreenState extends State<WeatherScreen> {
      
            // list of cards
      
-         const  SingleChildScrollView(
+           SingleChildScrollView(
           scrollDirection: Axis.horizontal,
             child:  Row(
               children:  [
-               HourlyForecast(
-                time: "0.0",
-                icon:Icons.cloud ,
-                tempreture: "301.22",
+                for(int i = 0 ;i<5;i++)
+                   HourlyForecast(
+                time: data['list'][i+1]['dt'].toString(),
+                icon:  data['list'][i+1]['weather'][0]['main'] == 'Clouds' || data['list'][i+1]['weather'][0]['main'] == 'Rain' ? Icons.cloud : Icons.sunny,
+                tempreture: data['list'][i+1]['main']['temp'].toString(),
                ), 
-     
-               HourlyForecast(
-                time: "0.0",
-                icon:Icons.sunny ,
-                tempreture: "301.22",
-               ), 
-     
-               HourlyForecast(
-                time: "0.0",
-                icon:Icons.sunny ,
-                tempreture: "301.22",
-               ), 
-               HourlyForecast(
-                time: "0.0",
-                icon:Icons.cloud ,
-                tempreture: "301.22",
-               ), 
-               HourlyForecast(
-                time: "0.0",
-                icon:Icons.cloud ,
-                tempreture: "301.22",
-               ), 
-     
+                
+              
               ]
              ),
           ),
@@ -176,22 +165,22 @@ class _WeatherScreenState extends State<WeatherScreen> {
             ),
      
      
-       const Padding(
+        Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   AdditonalInfo(icon: Icons.water_drop,
                    label: "Humidity",
-                    value: "9.4"),
+                    value: currentHumidity.toString()),
      
                     AdditonalInfo(icon: Icons.air,
                      label: "Wind Speed",
-                      value: "7.67"),
+                      value: currentWindSpeed.toString()),
      
                       AdditonalInfo(icon: Icons.beach_access,
                        label: "Pressure",
-                        value: "1006") 
+                        value:currentPressure.toString()) 
                 ],
               ),
         ),
